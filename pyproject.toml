@@ -1,0 +1,20 @@
+[project]
+name = "3dgs-from-scratch"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "ahrism10M501", email = "ariofeem@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "torch>=2.13.0",
+    "tqdm>=4.70.0",
+]
+
+[project.scripts]
+3dgs-from-scratch = "3dgs_from_scratch:main"
+
+[build-system]
+requires = ["uv_build>=0.12.2,<0.13.0"]
+build-backend = "uv_build"
