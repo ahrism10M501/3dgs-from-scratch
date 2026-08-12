@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+import config
+
 def inverse_sigmoid(x:torch.Tensor) -> torch.Tensor:
     return torch.log(x / (1.0 - x))
 
@@ -16,10 +18,14 @@ class GaussianModel(nn.Module):
             extent: 가우시안의 초기 위치를 결정하는 범위
             device: 모델을 저장할 장치 (cpu, gpu)
         defaults:
-            num_points=2000, extent=1.0, device="cpu"
+            None을 주면 config.py의 값을 사용한다.
     """
-    def __init__(self, num_points=2000, extent=1.0, device="cpu"):
+    def __init__(self, num_points=None, extent=None, device="cpu"):
         super().__init__()
+        # 함수 기본값에 config를 직접 쓰면 모듈 로드 시점에 고정되어버리므로 여기서 채운다
+        num_points = config.num_points if num_points is None else num_points
+        extent = config.extent if extent is None else extent
+
         self.num_points = num_points
         self.extent = extent
         self.device = device
@@ -27,14 +33,14 @@ class GaussianModel(nn.Module):
         # rand는 [0, 1) 이니까 이를 [-0.5, 0.5)로 바꾸고, extent를 곱해서 가우시안 중심 위치를 결정한다.
         means = (torch.rand(num_points, 3, device=device) - 0.5) *2 * extent # 가우시안 중심 위치
 
-        scales = torch.full((num_points, 3), math.log(0.05), device=device)  # 축 방향 크기
+        scales = torch.full((num_points, 3), math.log(config.init_scale), device=device)  # 축 방향 크기
 
         quats = torch.zeros(num_points, 4, device=device) # quaternions, 회전 -> [1, 0, 0, 0] 이면 회전 없음
         quats[:, 0] = 1.0 # 그래서 초기값을 [1, 0, 0, 0]으로 설정
 
         # 0.1로 채워진 (num_points, 1) 크기의 텐서를 만들고(torch.full) inverse_sigmoid를 적용하여 초기 opacity를 설정한다!
         # 시그모이드 역함수 씌우는건, 아래 property에서 sigmoid를 씌우니까, 초기값을 원하는 0.1로 하려면 역함수 필요하다
-        opacity = inverse_sigmoid(torch.full((num_points, 1), 0.1, device=device)) # 가우시안의 불투명도
+        opacity = inverse_sigmoid(torch.full((num_points, 1), config.init_opacity, device=device)) # 가우시안의 불투명도
 
         colors = torch.rand(num_points, 3, device=device) # uniform 랜덤
 

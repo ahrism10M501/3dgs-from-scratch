@@ -9,12 +9,9 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "torch>=2.13.0",
+    "torchvision>=0.28.0",
     "tqdm>=4.70.0",
 ]
 
-[project.scripts]
-3dgs-from-scratch = "3dgs_from_scratch:main"
-
-[build-system]
-requires = ["uv_build>=0.12.2,<0.13.0"]
-build-backend = "uv_build"
+[tool.uv]
+package = false

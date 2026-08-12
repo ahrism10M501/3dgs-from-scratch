@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+import config
+
 # 카메라 세팅하기
 class Camera:
     def __init__(self, viewmat, fx, fy, cx, cy, width, height):
@@ -15,7 +17,11 @@ class Camera:
         self.height = height
 
     @staticmethod
-    def from_fov(viewmat, fov, width, height, device="cpu"):
+    def from_fov(viewmat, fov=None, width=None, height=None, device="cpu"):
+        fov = config.fov if fov is None else fov
+        width = config.size if width is None else width
+        height = config.size if height is None else height
+
         fx = width / (2 * math.tan(math.radians(fov) / 2))
         cx = width / 2 # 보통 이미지 중심은 좌상단인데, 카메라 보정에서는 이미지 중심을 쓰니까...
         cy = height / 2
@@ -36,7 +42,7 @@ def look_at(eye, target=(0.0, 0.0, 0.0), up=(0.0, -1.0, 0.0), device="cpu"):
 
     # 카메라 좌표계 정의
     f = F.normalize(target - eye, dim=0) # 정면, eye는 알고있는 방향이니까 target - eye로 정면 방향을 구한다.
-    r = F.normalize(torch.cross(f, up), dim=0) # 오른쪽, 좌표계에서 앞과 위를 외적하면 오른쪽이지
+    r = F.normalize(torch.cross(f, up, dim=0), dim=0) # 오른쪽, 좌표계에서 앞과 위를 외적하면 오른쪽이지
     u = torch.cross(f, r, dim=0) # 위쪽 cross: 외적
 
     R = torch.stack([r, u, f], dim=0)
@@ -46,7 +52,9 @@ def look_at(eye, target=(0.0, 0.0, 0.0), up=(0.0, -1.0, 0.0), device="cpu"):
     return viewmat
 
 
-def project_guassians(means, cov3d, cam, near=0.2):
+def project_guassians(means, cov3d, cam, near=None):
+    near = config.near if near is None else near
+
     W = cam.viewmat[:3, :3]
     t = cam.viewmat[:3, 3]
 
@@ -76,6 +84,6 @@ def project_guassians(means, cov3d, cam, near=0.2):
     cov2d = T @ cov3d @ T.transpose(1, 2) # 공분산 구하기
 
     # low pass filter, 적어도 1픽셀 이상은 될 수 있도록 보장
-    cov2d = cov2d + 0.3 * torch.eye(2, device=cov2d.device)
+    cov2d = cov2d + config.blur_eps * torch.eye(2, device=cov2d.device)
 
     return means2d, cov2d, p_cam[:, 2], mask
